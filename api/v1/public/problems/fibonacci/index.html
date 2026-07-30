@@ -1,0 +1,69 @@
+{
+  "description": "> **Unofficial community tutorial.** This exercise was added after ICFPC 2026 and was not an organizer problem.\n\nOutput the *n*-th Fibonacci number, using\n\n`F₀ = 0`, `F₁ = 1`, and `Fₙ = Fₙ₋₁ + Fₙ₋₂` for `n ≥ 2`.\n\nThe input is one integer `n`; output `Fₙ`.\n\nThis is intended as a first exercise in using A and B as a pair of data registers and BP as a loop counter. Try it in the editor, then compare your machine with the [worked one-man solution and execution trace](/community/fibonacci/).",
+  "extraNotes": "",
+  "id": "community-fibonacci-tutorial",
+  "io": {
+    "constraints": [
+      "`0 ≤ n ≤ 92`",
+      "Use the convention `F₀ = 0` and `F₁ = 1`."
+    ],
+    "input": {
+      "label": "n",
+      "of": "int"
+    },
+    "output": {
+      "label": "F",
+      "of": "int"
+    }
+  },
+  "name": "Fibonacci",
+  "privateTestCount": 0,
+  "problemSetName": "Community Tutorials (Unofficial)",
+  "publicTestData": [
+    {
+      "in": ["0"],
+      "name": "zero",
+      "out": ["0"]
+    },
+    {
+      "in": ["1"],
+      "name": "one",
+      "out": ["1"]
+    },
+    {
+      "in": ["2"],
+      "name": "two",
+      "out": ["1"]
+    },
+    {
+      "in": ["5"],
+      "name": "five",
+      "out": ["5"]
+    },
+    {
+      "in": ["10"],
+      "name": "ten",
+      "out": ["55"]
+    },
+    {
+      "in": ["20"],
+      "name": "twenty",
+      "out": ["6765"]
+    },
+    {
+      "in": ["50"],
+      "name": "fifty",
+      "out": ["12586269025"]
+    },
+    {
+      "in": ["92"],
+      "name": "largest non-overflowing answer",
+      "out": ["7540113804746346429"]
+    }
+  ],
+  "scoring": "footprint-tick",
+  "slug": "fibonacci",
+  "status": "practice",
+  "tickCap": 5000,
+  "uberStrict": false
+}

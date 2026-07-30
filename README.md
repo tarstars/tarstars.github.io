@@ -13,6 +13,14 @@ rules, grading and language reference pages, and the in-browser littleman
 editor with its WebAssembly VM. Sign-in, submitting and the dashboard
 needed the live server and are inert.
 
+## Unofficial community exercises
+
+Post-contest additions are kept separate from the captured archive and are
+clearly labelled as unofficial:
+
+- [Fibonacci](/problems/fibonacci/) — a small one-man exercise with a
+  [worked solution and execution trace](/community/fibonacci/).
+
 The raw captured JSON (API responses, per-problem standings, our team
 wheezards' submission records) is browsable under [`/archive/`](/archive/).
 
