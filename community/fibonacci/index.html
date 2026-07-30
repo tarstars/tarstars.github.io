@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fibonacci in Littleman — worked solution</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" crossorigin href="/assets/index-nAJqvgeH.css" />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Lato, system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        color: #26221d;
+        background: #f7f5ef;
+      }
+
+      header {
+        border-bottom: 1px solid #d7d1c5;
+        background: #fff;
+      }
+
+      header nav,
+      main {
+        width: min(860px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      header nav {
+        display: flex;
+        gap: 22px;
+        align-items: center;
+        min-height: 58px;
+      }
+
+      header a,
+      main a {
+        color: #644b22;
+      }
+
+      .brand {
+        margin-right: auto;
+        font: 700 19px ui-monospace, SFMono-Regular, Menlo, monospace;
+        text-decoration: none;
+      }
+
+      main {
+        padding: 46px 0 90px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 6vw, 54px);
+        line-height: 1;
+      }
+
+      h2 {
+        margin-top: 42px;
+      }
+
+      .subtitle {
+        color: #6d665d;
+        font-size: 18px;
+      }
+
+      .notice {
+        margin: 28px 0;
+        padding: 14px 16px;
+        border: 1px solid #d7c89f;
+        border-radius: 5px;
+        background: #fff9df;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 24px 0;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 9px 13px;
+        border: 1px solid #765c2d;
+        border-radius: 4px;
+        background: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .button.primary {
+        color: #fff;
+        background: #765c2d;
+      }
+
+      pre,
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      pre {
+        overflow-x: auto;
+        padding: 16px;
+        border: 1px solid #d7d1c5;
+        border-radius: 5px;
+        background: #fff;
+        line-height: 1.45;
+      }
+
+      code {
+        padding: 0.08em 0.28em;
+        border-radius: 3px;
+        background: #ece8df;
+      }
+
+      pre code {
+        padding: 0;
+        background: transparent;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+      }
+
+      th,
+      td {
+        padding: 9px 11px;
+        border: 1px solid #d7d1c5;
+        text-align: left;
+      }
+
+      th {
+        background: #ece8df;
+      }
+
+      .machine {
+        font-size: clamp(11px, 2.4vw, 15px);
+      }
+
+      footer {
+        margin-top: 55px;
+        padding-top: 18px;
+        border-top: 1px solid #d7d1c5;
+        color: #6d665d;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a class="brand" href="/">&gt; @ H</a>
+        <a href="/problem-sets">Problem Sets</a>
+        <a href="/language-reference">Reference</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Fibonacci in Littleman</h1>
+      <p class="subtitle">
+        A complete one-man example using two data registers and BP as a
+        countdown.
+      </p>
+
+      <div class="notice">
+        <strong>Unofficial community tutorial.</strong>
+        This was added after ICFPC 2026 and is not part of the captured
+        organizer problem set.
+      </div>
+
+      <div class="actions">
+        <a class="button primary" href="/problems/fibonacci/"
+          >Open the practice problem</a
+        >
+        <a class="button" href="/problems/fibonacci/editor"
+          >Try it in the editor</a
+        >
+        <a class="button" href="./fibonacci.man" download
+          >Download fibonacci.man</a
+        >
+      </div>
+
+      <h2>The complete machine</h2>
+
+      <pre class="machine"><code>+-+  +------------+
+|I|&gt;&gt;|@rb0M1Wv    |
++-+  |            |  +-+
+     |       &gt; dsH|&gt;&gt;|O|
+     |         +  |  +-+
+     |         W  |
+     |         m  |
+     |       ^ &lt;  |
+     +------------+</code></pre>
+
+      <p>
+        There are three rooms, but only one contains a man. The other two are
+        the required input and output rooms. No relay is needed because this
+        algorithm does not store a data stream in a feedback pipe.
+      </p>
+
+      <h2>Initialization</h2>
+
+      <p>The man begins at <code>@</code>, facing right:</p>
+
+      <pre><code>@ r b 0 M 1 W v</code></pre>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Instruction</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>r</code></td>
+            <td>Receive n into A.</td>
+          </tr>
+          <tr>
+            <td><code>b</code></td>
+            <td>Copy n into BP.</td>
+          </tr>
+          <tr>
+            <td><code>0 M</code></td>
+            <td>Set A = 0, then copy it to B.</td>
+          </tr>
+          <tr>
+            <td><code>1 W</code></td>
+            <td>Set A = 1, then swap: A = 0 and B = 1.</td>
+          </tr>
+          <tr>
+            <td><code>v</code></td>
+            <td>Turn toward the loop controller.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The loop begins with:</p>
+
+      <pre><code>A = F₀ = 0
+B = F₁ = 1
+BP = n</code></pre>
+
+      <h2>The loop controller</h2>
+
+      <p>
+        The man reaches <code>d</code> while facing right. If BP is positive,
+        <code>d</code> turns him clockwise and down into the loop. If BP is
+        zero, he continues straight to <code>s</code>, sends A to the output,
+        and halts on <code>H</code>.
+      </p>
+
+      <pre><code>              d → s → H
+              ↓
+              +
+              W
+              m
+            ↑ ←</code></pre>
+
+      <p>
+        This is how BP can control a loop despite having no general read
+        instruction.
+      </p>
+
+      <h2>One Fibonacci step</h2>
+
+      <p>At the start of iteration k, maintain the invariant:</p>
+
+      <pre><code>A = Fₖ
+B = Fₖ₊₁</code></pre>
+
+      <p><code>+</code> and <code>W</code> transform the pair:</p>
+
+      <pre><code>+ : A = Fₖ + Fₖ₊₁ = Fₖ₊₂,  B = Fₖ₊₁
+W : A = Fₖ₊₁,               B = Fₖ₊₂</code></pre>
+
+      <p>
+        Then <code>m</code> decrements BP and the arrows route the man back to
+        <code>d</code>. After exactly n iterations, A contains Fₙ.
+      </p>
+
+      <h2>Trace for n = 5</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Iteration</th>
+            <th>A</th>
+            <th>B</th>
+            <th>BP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Start</td><td>0</td><td>1</td><td>5</td></tr>
+          <tr><td>1</td><td>1</td><td>1</td><td>4</td></tr>
+          <tr><td>2</td><td>1</td><td>2</td><td>3</td></tr>
+          <tr><td>3</td><td>2</td><td>3</td><td>2</td></tr>
+          <tr><td>4</td><td>3</td><td>5</td><td>1</td></tr>
+          <tr><td>5</td><td>5</td><td>8</td><td>0</td></tr>
+        </tbody>
+      </table>
+
+      <p>
+        On the next visit to <code>d</code>, BP is zero, so the machine emits
+        A = 5.
+      </p>
+
+      <h2>About relay rooms</h2>
+
+      <p>
+        A pipe cannot return to the room it started from. When a solution
+        needs a persistent FIFO ring, it therefore adds a tiny second room.
+        Its man repeatedly receives with <code>r</code> and sends with
+        <code>s</code>, connecting two legal one-way pipes into a logical
+        feedback loop. Fibonacci needs only the current pair, so A and B are
+        sufficient and the relay is absent.
+      </p>
+
+      <footer>
+        The downloadable machine was checked against all eight public examples
+        with the repository’s Littleman simulator.
+      </footer>
+    </main>
+  </body>
+</html>
