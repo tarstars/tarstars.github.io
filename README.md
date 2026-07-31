@@ -20,6 +20,8 @@ clearly labelled as unofficial:
 
 - [Fibonacci](/problems/fibonacci/) — a small one-man exercise with a
   [worked solution and execution trace](/community/fibonacci/).
+- [Array Sum](/problems/array-sum/) — consume a length-prefixed list as a
+  stream and compute its sum without storing the array.
 
 The raw captured JSON (API responses, per-problem standings, our team
 wheezards' submission records) is browsable under [`/archive/`](/archive/).
