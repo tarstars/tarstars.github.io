@@ -1,0 +1,269 @@
+{
+  "description": "> **Unofficial community tutorial.** This exercise was added after ICFPC 2026 and was not an organizer problem.\n\nRead a length-prefixed list of integers and output the sum of its elements.\n\nThe first input value is the size `n`, followed by `n` integers. For example, `3 10 -2 7` represents the list `[10, -2, 7]` and the correct output is `15`.\n\nThe array does not need to be stored: it can be consumed as a stream. A natural Littleman solution keeps the remaining count in BP and the running total in A or B. The sum of an empty list is `0`.",
+  "extraNotes": "",
+  "id": "community-array-sum-tutorial",
+  "io": {
+    "constraints": [
+      "`0 ≤ n ≤ 100`",
+      "`-1,000,000,000 ≤ x ≤ 1,000,000,000`",
+      "The exact sum fits in a signed 64-bit integer."
+    ],
+    "input": {
+      "lengthPrefixed": {
+        "label": "x",
+        "note": "an element of the list",
+        "of": "int"
+      }
+    },
+    "output": {
+      "label": "sum",
+      "of": "int"
+    }
+  },
+  "name": "Array Sum",
+  "privateTestCount": 0,
+  "problemSetName": "Community Tutorials (Unofficial)",
+  "publicTestData": [
+    {
+      "in": [
+        "0"
+      ],
+      "name": "empty list",
+      "out": [
+        "0"
+      ]
+    },
+    {
+      "in": [
+        "1",
+        "7"
+      ],
+      "name": "one positive value",
+      "out": [
+        "7"
+      ]
+    },
+    {
+      "in": [
+        "1",
+        "-11"
+      ],
+      "name": "one negative value",
+      "out": [
+        "-11"
+      ]
+    },
+    {
+      "in": [
+        "3",
+        "1",
+        "5",
+        "2"
+      ],
+      "name": "warm up",
+      "out": [
+        "8"
+      ]
+    },
+    {
+      "in": [
+        "6",
+        "12",
+        "-4",
+        "-8",
+        "100",
+        "-100",
+        "0"
+      ],
+      "name": "cancellation",
+      "out": [
+        "0"
+      ]
+    },
+    {
+      "in": [
+        "5",
+        "-9",
+        "-3",
+        "-10",
+        "-15",
+        "-123123"
+      ],
+      "name": "all negative",
+      "out": [
+        "-123160"
+      ]
+    },
+    {
+      "in": [
+        "8",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "name": "all zero",
+      "out": [
+        "0"
+      ]
+    },
+    {
+      "in": [
+        "16",
+        "-1719",
+        "679",
+        "-3535",
+        "-2120",
+        "-3672",
+        "-6230",
+        "-422",
+        "5605",
+        "8281",
+        "-2208",
+        "-5234",
+        "8215",
+        "6404",
+        "-9921",
+        "-827",
+        "-9071"
+      ],
+      "name": "sixteen mixed values",
+      "out": [
+        "-15775"
+      ]
+    },
+    {
+      "in": [
+        "6",
+        "1000000000",
+        "999999999",
+        "-123456789",
+        "42",
+        "-876543210",
+        "500000000"
+      ],
+      "name": "large values",
+      "out": [
+        "1500000042"
+      ]
+    },
+    {
+      "in": [
+        "100",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "87",
+        "88",
+        "89",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        "97",
+        "98",
+        "99",
+        "100"
+      ],
+      "name": "one hundred values",
+      "out": [
+        "5050"
+      ]
+    }
+  ],
+  "scoring": "footprint-tick",
+  "slug": "array-sum",
+  "status": "practice",
+  "tickCap": 50000,
+  "uberStrict": false
+}
