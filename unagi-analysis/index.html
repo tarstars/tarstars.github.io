@@ -1,0 +1,1247 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Team Unagi at ICFPC 2026 — a detailed analysis</title><style>
+:root { --ink: #1a1a20; --mut: #5a5a66; --acc: #7a1f2b; --line: #d8d8e0; }
+* { box-sizing: border-box; }
+html { font-size: 15px; }
+body { font-family: Georgia, 'Times New Roman', serif; color: var(--ink);
+       margin: 0; line-height: 1.55; }
+.page { max-width: 54rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+header.site { font-family: system-ui, sans-serif; border-bottom: 2px solid var(--acc);
+  padding: .8rem 1.5rem; display: flex; gap: 1.2rem; align-items: baseline; flex-wrap: wrap; }
+header.site .t { font-weight: 700; }
+header.site a { color: var(--acc); text-decoration: none; }
+header.site a:hover { text-decoration: underline; }
+h1 { font-size: 1.9rem; color: var(--acc); margin: 2.2rem 0 .6rem;
+     border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
+h2 { font-size: 1.35rem; margin: 1.8rem 0 .5rem; }
+h3 { font-size: 1.1rem; margin: 1.3rem 0 .4rem; }
+p, li { text-align: justify; }
+code, pre { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: .86em; }
+code { background: #f3f3f7; padding: .08em .3em; border-radius: 3px; }
+pre { background: #f7f7fa; border: 1px solid var(--line); border-radius: 6px;
+      padding: .7rem .9rem; overflow-x: auto; line-height: 1.35; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; margin: 1rem auto; font-size: .92em;
+        font-family: system-ui, sans-serif; }
+th, td { border: 1px solid var(--line); padding: .3rem .55rem; text-align: left; }
+th { background: #f0eef2; }
+tr:nth-child(even) td { background: #fafafc; }
+blockquote { border-left: 3px solid var(--acc); margin: 1rem 0; padding: .1rem 1rem;
+             color: var(--mut); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2rem 0; }
+a { color: var(--acc); }
+.cover { text-align: center; padding: 6rem 0 3rem; }
+.cover h1 { border: none; font-size: 2.5rem; }
+.cover .sub { color: var(--mut); font-size: 1.15rem; }
+@media print {
+  header.site { display: none; }
+  .page { max-width: none; padding: 0; }
+  h1 { page-break-before: always; }
+  .cover, .cover + h1 { page-break-before: avoid; }
+  pre, table, blockquote { page-break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+  body { font-size: 10.5pt; }
+}
+</style></head><body><header class="site">
+  <span class="t">ICFPC 2026 — Team Unagi analysis</span>
+  <a href="https://github.com/tarstars/icfpc2026-claude">our repo (wheezards)</a>
+  <a href="https://github.com/icfpc-unagi/icfpc2026">their repo (Unagi)</a>
+  <a href="/">contest-site mirror</a>
+  <a href="unagi-icfpc2026-analysis.pdf">PDF version</a>
+</header><div class='page'><div class="cover">
+  <h1>Team Unagi at ICFPC 2026</h1>
+  <p class="sub">A detailed analysis of their per-problem approaches, contest
+  operation, and machinery &mdash; compared throughout with team wheezards.</p>
+  <p class="sub">wheezards &middot; 2026-08-05 &middot;
+  sources: github.com/icfpc-unagi/icfpc2026 &middot;
+  github.com/tarstars/icfpc2026-claude</p>
+</div><h1>Team Unagi at ICFPC 2026: A Detailed Analysis</h1>
+<p><strong>An engineering study of icfpc-unagi/icfpc2026, compared throughout
+with team wheezards&rsquo; own contest</strong> · prepared by the wheezards
+tooling agent, 2026-08-05</p>
+<hr />
+<h2>Abstract</h2>
+<p>Team Unagi — six-time-class ICFPC winners — published their complete
+ICFP Programming Contest 2026 repository. We cloned it (779 commits,
+384 MB, 6 contributors) and read it end to end: every per-problem
+postmortem trail (~230 documents), the toolchain crates (~45k lines of
+Rust), the autonomous-agent systems, and the operational documentation.
+This report reconstructs, in detail: <strong>(1)</strong> their approach to every one
+of the sixteen graded problems, <strong>(2)</strong> their approach to the contest as
+an operation, and <strong>(3)</strong> the machinery behind each stage of their
+pipeline — simulation, generation, composition, optimization,
+verification, submission, and knowledge management.</p>
+<p>Every comparison with our own team (wheezards) is anchored to one
+moment: our archived standings snapshot of <strong>2026-07-27 08:38 UTC</strong>
+(~3.5 hours before the end, pre-freeze), the only timestamp at which
+both teams&rsquo; numbers are directly comparable. At that moment Unagi was
+<strong>rank 11 of 268 with 29.31 points</strong>; we were <strong>rank 39 with 24.68</strong>.</p>
+<p>The one-sentence conclusion: Unagi ran a three-layer factory —
+<em>algorithms chosen and re-chosen by strong humans, machines emitted by
+per-problem generators over a verified gadget discipline, and a generic
+annealing optimizer polishing valid artifacts</em> — on cloud infrastructure
+that existed before the contest began, with LLM agents embedded as
+scheduled, leaderboard-driven workers inside that factory. The
+4.6-point gap between the teams is concentrated almost entirely in six
+problems where their algorithm was a different complexity class from
+ours; where the fight was layout and operations, we were within small
+factors and once ahead.</p>
+<h2>Method and provenance</h2>
+<ul>
+<li>Repository cloned 2026-08-05 from <code>github.com/icfpc-unagi/icfpc2026</code>.</li>
+<li>All quoted scores, geometries, tick counts, submission IDs and quotes
+  come from files in that repository (postmortems under
+  <code>solutions/&lt;slug&gt;/</code>, docs under <code>docs/</code>, code under <code>crates/</code>,
+  <code>iwiwi/</code>, <code>chokudai/</code>, <code>wata/</code>, <code>tos/</code>) or from our own archived
+  contest-site snapshot (<code>archive/site-snapshot/</code> in
+  <code>tarstars/icfpc2026-claude</code>, captured 2026-07-27 08:38–09:00 UTC).</li>
+<li>Their repository demonstrably lags their final live submissions (their
+  committed best for several problems is worse than the score the
+  official standings showed at 08:38), so per-problem &ldquo;repo best&rdquo; and
+  &ldquo;snapshot official&rdquo; are both reported where they differ.</li>
+<li>The working notes behind this report are committed as artifacts in
+  <code>reports/unagi-analysis/notes/</code> of our repository.</li>
+</ul>
+<h2>The contest in one page</h2>
+<p>ICFPC 2026 (&ldquo;the basics of real-world systems programming&rdquo;) ran
+2026-07-24 12:00 UTC → 2026-07-27 12:00 UTC. Teams programmed the
+<strong>littleman machine</strong>: a 2-D ASCII grid of <em>rooms</em> connected by <em>pipes</em>,
+in which little men walk over instruction cells. Key mechanics that
+shape everything below:</p>
+<ul>
+<li>A man walks in a heading; blank cells preserve it; arrows change it;
+  instruction cells execute (<code>M</code>/<code>W</code> register moves, arithmetic, <code>s</code>/<code>r</code>
+  pipe I/O, branches <code>X</code>/<code>d</code>/<code>a</code>/<code>x</code>, literals in backticks, <code>H</code> halt).</li>
+<li><code>r</code>/<code>s</code> bind to the <strong>nearest</strong> pipe endpoint (Manhattan, tie by
+  coordinates) — <em>where</em> an instruction stands determines <em>which</em> pipe
+  it talks to. Geometry is an operand.</li>
+<li>Pipes are FIFOs; <strong>pipe length = latency AND capacity</strong>. Backtick
+  literals pair per row and per column — vertical alignment of unrelated
+  literals can create illegal pairs.</li>
+<li>Displays (LM-75) take address/data/swap streams; some problems are
+  scored on emitted frames.</li>
+<li><strong>Score (most problems) = max(width, height)² × average ticks</strong> —
+  lower is better. Footprint is squared, so the long side dominates;
+  ticks stop counting at the last correct output.</li>
+<li><strong>Points per problem = cases-passed fraction + rank fraction
+  (2.0 max)</strong>; only a team&rsquo;s best submission counts, so submitting is
+  free and floors are valuable.</li>
+</ul>
+<h2>Headline comparison</h2>
+<p>Both teams at 2026-07-27 08:38 UTC (rank / score; &ldquo;gap&rdquo; = our score ÷
+theirs; lower score is better):</p>
+<table>
+<thead>
+<tr>
+<th>problem</th>
+<th>Unagi</th>
+<th>wheezards</th>
+<th>gap</th>
+<th>nature of the gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>triangle</td>
+<td>59 / 832</td>
+<td>118 / 832</td>
+<td>1.0×</td>
+<td>shared optimum</td>
+</tr>
+<tr>
+<td>history-lesson</td>
+<td>28 / 6,889</td>
+<td><strong>21 / 6,561</strong></td>
+<td><strong>0.95×</strong></td>
+<td><strong>we were ahead</strong></td>
+</tr>
+<tr>
+<td>memory</td>
+<td>8 / 8.85M</td>
+<td>20 / 14.0M</td>
+<td>1.6×</td>
+<td>layout/protocol polish</td>
+</tr>
+<tr>
+<td>tcp</td>
+<td>30 / 821K</td>
+<td>32 / 1.36M</td>
+<td>1.7×</td>
+<td>layout/protocol polish</td>
+</tr>
+<tr>
+<td>sort-numbers</td>
+<td>14 / 320K</td>
+<td>49 / 802K</td>
+<td>2.5×</td>
+<td>layout + micro-protocol</td>
+</tr>
+<tr>
+<td>reverse-a-list</td>
+<td>17 / 20.0K</td>
+<td>47 / 84.4K</td>
+<td>4.2×</td>
+<td>architecture (delay-line)</td>
+</tr>
+<tr>
+<td>lllm</td>
+<td>11 / 4.81B</td>
+<td>24 / 21.2B</td>
+<td>4.4×</td>
+<td>interpreter constants</td>
+</tr>
+<tr>
+<td>brackets</td>
+<td>13 / 83.8K</td>
+<td>41 / 377K</td>
+<td>4.5×</td>
+<td>footprint class (16 vs 22)</td>
+</tr>
+<tr>
+<td>snake</td>
+<td>21 / 107M</td>
+<td>36 / 809M</td>
+<td>7.6×</td>
+<td>generated vs patched</td>
+</tr>
+<tr>
+<td>gradebook</td>
+<td>36 / 405M</td>
+<td>66 / 47.1B</td>
+<td>116×</td>
+<td><strong>algorithm</strong></td>
+</tr>
+<tr>
+<td>pathfinder</td>
+<td>33 / 114B</td>
+<td>54 / 16.1T</td>
+<td>141×</td>
+<td><strong>algorithm</strong></td>
+</tr>
+<tr>
+<td>matmul</td>
+<td>11 / 16.7M</td>
+<td>58 / 5.93B</td>
+<td>356×</td>
+<td><strong>algorithm</strong></td>
+</tr>
+<tr>
+<td>plotter</td>
+<td>6 / 3.72M</td>
+<td>63 / 1.01B</td>
+<td>271×</td>
+<td><strong>algorithm + codegen</strong></td>
+</tr>
+<tr>
+<td>llm</td>
+<td>27 / 16.1T</td>
+<td>46 / 8.78Q</td>
+<td>545×</td>
+<td><strong>interpreter constants</strong></td>
+</tr>
+<tr>
+<td>sudoku-validity</td>
+<td>23 / 2.50M</td>
+<td>74 / 9.29B</td>
+<td>3,709×</td>
+<td><strong>algorithm</strong></td>
+</tr>
+<tr>
+<td>subset-sum</td>
+<td>11 / 995M</td>
+<td>61 / 37.4T</td>
+<td>37,601×</td>
+<td><strong>algorithm class</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Our final submissions after 08:38 improved several rows (pathfinder
+16.1T → 4.37T, gradebook → 34.0B, sudoku → 6.74B, lllm → 17.6B), and
+their committed artifacts show them still descending too. The shape of
+the table does not change: <strong>six problems ≥100×, all algorithmic; nine
+problems ≤8×, all layout-and-operations; one problem where we led.</strong></p>
+<p>Reading the table strategically: under this contest&rsquo;s scoring, each
+problem&rsquo;s rank fraction is worth up to 1.0 point. The six ≥100× rows
+are approximately the entire final gap between rank 39 and rank 11.
+Nothing about our operational execution — judging, submitting,
+coordinating, squeezing — could have closed them; only different
+algorithms could. That is the central lesson of this study, and it is
+also, almost verbatim, the doctrine written at the top of Unagi&rsquo;s own
+technique catalog: <em>&ldquo;most problems are footprint-tick scored; the two
+axes often move in opposite directions; always judge by the product&rdquo;</em> —
+their catalog&rsquo;s preamble, our <code>claude_44</code>, independently converged.</p>
+<h1>Part I — Their Approach to the Contest</h1>
+<h2>1. The team and the division of labor</h2>
+<p>Six members, all veterans: Takuya Akiba (iwiwi), Kentaro Imajo (imos),
+Hiroaki Iwami (sulume), Yoichi Iwata (wata), Toshiki Kataoka, Naohiro
+Takahashi (tos). The commit record (779 commits) shows a clean split:</p>
+<table>
+<thead>
+<tr>
+<th>member</th>
+<th>commits</th>
+<th>primary territory</th>
+<th>inferred role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Akiba</td>
+<td>323</td>
+<td><code>iwiwi/</code> (8,613 files)</td>
+<td>autonomous agent systems v1→v4; post-contest editorial</td>
+</tr>
+<tr>
+<td>sulume</td>
+<td>202</td>
+<td><code>solutions/</code> (659 files touched)</td>
+<td>solution iteration and postmortems</td>
+</tr>
+<tr>
+<td>Imajo</td>
+<td>132</td>
+<td><code>crates/</code> (692), <code>docs/</code> (634)</td>
+<td>infrastructure, optimizer, documentation system</td>
+</tr>
+<tr>
+<td>Kataoka</td>
+<td>62</td>
+<td><code>crates/</code>, <code>tos/</code>, <code>problems/</code></td>
+<td>tooling</td>
+</tr>
+<tr>
+<td>Iwata</td>
+<td>49</td>
+<td><code>solutions/</code> (453 files)</td>
+<td>hand-crafted flagship solvers (<code>wata-orz</code> artifacts)</td>
+</tr>
+<tr>
+<td>Takahashi</td>
+<td>7</td>
+<td><code>tos/</code> diaries</td>
+<td>artisan solving with plain-text diaries</td>
+</tr>
+</tbody>
+</table>
+<p>Daily commit cadence: 88 (day 1) → 269 → 280 → 135 (final half-day) —
+sustained parallel work, not a final-day crunch.</p>
+<p>Three personal workflows coexist under shared conventions: Akiba&rsquo;s
+agent loops, wata&rsquo;s prompt-driven sessions with a human handling git,
+tos&rsquo;s plain-text diaries (<code>tos/gradebook-diary.txt</code>,
+<code>memory-diary.txt</code>, <code>sort-numbers-diary.txt</code>) plus snapshot scripts.
+The shared convention that binds them is the <strong>score-named artifact</strong>:
+<code>solutions/&lt;slug&gt;/&lt;score&gt;.man</code> + <code>&lt;score&gt;.md</code> + optionally <code>&lt;score&gt;.py</code>
+(generator). &ldquo;The current best is the numerically smallest score&rdquo; is
+literally how wata&rsquo;s agent prompt defines the interface.</p>
+<h2>2. Preparation: the contest before the contest</h2>
+<p><code>docs/preparation.md</code> records the doctrine, distilled from their
+2023–2025 repos (kept as reference clones): <em>&ldquo;make every
+task-independent thing work in advance, including one full rehearsal on
+a past problem.&rdquo;</em> Ported and verified green before the start:</p>
+<ul>
+<li>A Rust workspace split by dependency into <code>unagi-util / gcp / sql /
+  lock / executor / www</code> plus contest-specific crates to be added later.</li>
+<li>GCP: buckets (<code>gs://icfpc2026</code>, <code>gs://icfpc2026-data</code>), service
+  account, Cloud SQL + phpMyAdmin, Artifact Registry, Cloud Run deploy
+  targets via <code>make docker/&lt;service&gt;@deploy</code>, billing alerts — and a
+  <strong>GCE quota request filed early</strong> (they used 224-vCPU machines in
+  2023; quota raises have lead time).</li>
+<li>Secrets bootstrapped from a single <code>UNAGI_PASSWORD</code>: AES-256-CBC
+  encrypted configs committed in-repo, webhook URLs and API keys fetched
+  at runtime from GCS, never committed and never logged. Repo-local
+  <code>gcloud</code>/<code>gsutil</code> wrappers install a project-scoped Cloud SDK under
+  <code>.cache/</code> on first use — no system-wide installs.</li>
+<li>SAT solvers (cadical, rustsat-*) pre-declared as opt-in workspace
+  dependencies in case the task wanted them.</li>
+<li><code>AGENTS.md</code> — standing rules for LLM development agents: minimal
+  diffs, tests + <code>make lint</code> after Rust changes, never print secrets,
+  GCP mutations require explicit human approval, destructive operations
+  forbidden, update docs when behavior changes.</li>
+</ul>
+<h2>3. Running services during the contest</h2>
+<p><code>docs/services.md</code> and <code>docs/api/submissions.md</code> describe a small
+production system:</p>
+<ul>
+<li><strong><code>server</code></strong> (Cloud Run, custom domain <code>icfpc.sx9.jp</code>, Basic auth):
+  the human dashboard — tasks, locks, communications.</li>
+<li><strong><code>api</code></strong> (Cloud Run): the <strong>submission relay</strong>. <code>./bin/submit</code>
+  authenticates with <code>UNAGI_PASSWORD</code>; the service stores each program
+  as versioned JSON in GCS, keeps a persistent queue + state + event
+  history in Cloud SQL, and is the <em>only</em> place that reads the official
+  contest API key (from GCS, cached 5 minutes in-process). No member
+  laptop ever holds the key. A Cloud Scheduler cron drives
+  <code>process-one</code> queue steps.</li>
+<li><strong><code>system</code></strong>: periodic jobs; <strong>Discord webhooks</strong> for notifications
+  (URL fetched at runtime, never embedded).</li>
+<li><strong><code>unagi-executor</code></strong>: the DB-backed task executor that fans work out
+  across a fleet of GCE machines — carried over from previous years.</li>
+<li>A <code>scoreboard</code> binary reads their own submission history and the
+  official standings through the <code>www</code> API and re-runs public cases
+  through the local simulator — continuous like-for-like scoring.</li>
+</ul>
+<p>Compare us: one coordinator agent (Claude) held the API key locally and
+was the single submitter; judging was a local script (<code>subdb.py</code>,
+<code>preflight.py</code>); coordination was git-mediated messages. Functionally
+similar shape — gatekeeper + queue — but theirs is a deployed service
+with history, versioning, and no key exposure, built years earlier.</p>
+<h2>4. The strategy layer</h2>
+<p>Four patterns recur everywhere in their repo and deserve names:</p>
+<ol>
+<li><strong>Expected-gain-proportional attention.</strong> The v2 scheduler samples
+   the next problem to work on with weight <code>2 − Unagi's current
+   points</code> on that problem (2.0 being the per-problem maximum). Modes
+   <code>improve</code> and <code>rewrite</code> are chosen 50/50; the target is a randomly
+   chosen team <em>above</em> them (or their own best when ranked 1). The
+   explore half — <code>rewrite</code> — is what produced the ≥100× jumps.</li>
+<li><strong>Floors first, ceilings second.</strong> For llm they shipped a public-case
+   memorizer (14/28 cases, honest filename <code>14-of-28</code>) as a floor while
+   the real universal interpreter was being built. Cases-passed is half
+   the points; a floor is nearly free.</li>
+<li><strong>Leaderboard-coupled everything.</strong> Postmortems quote the leader&rsquo;s
+   score and the gap (&ldquo;gap to leader 6.8%&rdquo;); one artifact records the
+   policy &ldquo;commit/push only after reaching rank 1&rdquo;; the v3 agent loop
+   polls standings before every run and <em>sleeps while rank 1</em>.</li>
+<li><strong>Everything regenerable, everything scored.</strong> Artifacts are named by
+   official score; generators + seeds are committed next to outputs and
+   byte-reproduce them; placements ship PNG renders and JSON routing
+   reports; experiments that FAILED are written down with numbers
+   (memory&rsquo;s 2-worker rotation: &ldquo;no average gain, heavy
+   consecutive-access cases regress&rdquo; — recorded, rejected).</li>
+</ol>
+<h2>5. The agent systems: v1 → v2 → v3</h2>
+<p>Three generations inside one 72-hour contest:</p>
+<ul>
+<li><strong>v1</strong> (from 17:32 UTC day 1): flat timestamped work dirs,
+  one-shot Codex runs per problem.</li>
+<li><strong>v2</strong>: three roles. <em>Solvers</em> (agent sessions humans launch in tmux)
+  ask a <em>Scheduler</em> for work — an SQLite service holding free-form
+  <code>suggestions</code> (FIFO, from humans or the Curator) and falling back to
+  the expected-gain sampling above; a <em>Curator</em> — deliberately a
+  <strong>single writer</strong> — wakes every 300 s, reads new solver memos,
+  integrates them into per-problem memory and a cross-problem Cookbook,
+  and posts cross-pollination suggestions back to the scheduler.</li>
+<li><strong>v3</strong>: the mature loop (<code>loop.sh &lt;slug&gt;</code>, <code>loop_v2.py</code>). Each run
+  launches a <strong>fresh-context agent</strong> that inherits the durable tree:
+  <code>problems/&lt;slug&gt;/</code> (current position + solution history),
+  <code>knowledge/</code> (cross-problem techniques), <code>work/</code> (scratch). The
+  solver prompt is a six-step pipeline with concrete shell per step —
+  assess (auth, ff-only pull, resolve the problem via the public API) →
+  solve → submit → record → notify → save. <code>loop_v2.py</code> fetches
+  standings before each run and sets the success criterion dynamically:
+  catch rank 1; if more than 10× behind, achieve ~10×; if rank 1,
+  sleep 10 minutes and re-check. A
+  <code>semantic-regressions.json</code> records meaning-level mistakes past agents
+  made, as a regression suite for prompts.</li>
+<li><strong>v4-hand</strong>: the human pair — wata + iwiwi trading artifacts on the
+  hardest interpreter problems (LLLM&rsquo;s descent 3.8T → 68.97B is a
+  filename trail alternating <code>_iwiwi</code> / <code>_wata-orz</code>), with detailed
+  architecture notes (<code>LLLM_BITPLANE_PIPELINE.md</code> etc.).</li>
+</ul>
+<p>Contrast with ours: we ran 4–8 heterogeneous agents (claude, codex,
+gpt, chatgpt_1/2/4, codex_3, alexey) coordinated by a human + one
+coordinator agent over git-messages, with manual task (re)assignment.
+Our topology excelled at <strong>handoffs</strong> — ten of our fourteen final-day
+improvements were other agents&rsquo; finished work that only needed judging
+and pushing. Theirs excelled at <strong>unattended grinding against the
+leaderboard</strong> — fresh contexts, durable knowledge, machine-checkable
+goals. The two models are complementary, and neither team ran the
+other&rsquo;s.</p>
+<h1>Part II — The Machinery Behind Each Stage</h1>
+<p>Their pipeline, stage by stage, with the exact artifact that implements
+each. The through-line: <strong>at every stage, the unit of work is a
+regenerable, testable, scored artifact — never a hand-edited grid.</strong></p>
+<h2>Stage 0: Ground truth — <code>unagi-simulator</code> + conformance</h2>
+<p>~10k lines of Rust. Values are <code>i64</code> with the official wrapping
+semantics; the mid-contest <code>Y</code> (split) instruction is implemented;
+program boards are flat row-major byte arrays.</p>
+<p>The decisive design choice is <em>dual execution</em>: <code>./bin/simulate</code> runs
+the Rust engine, <code>./bin/simulate-official</code> runs the organizers&rsquo; own
+Go/WASM build behind the same CLI, and both consume a shared
+conformance file (<code>crates/simulator/testdata/cases.json</code>). Divergences
+between spec and official behavior are cataloged in
+<code>docs/simulator/language-conformance.md</code>, and recorded probes of the
+live editor sit in <code>docs/official/editor-observations-2026-07-26.json</code>.
+Solution harnesses routinely ship <strong>both</strong> verifiers (snake:
+<code>verify.rs</code> <em>and</em> <code>verify-official.mjs</code>; llm cross-checks its pipe
+shifter and guest ALU against the WASM).</p>
+<p><em>Ours, for contrast:</em> <code>sim.py</code> + C extension + Rust executor, with the
+official WASM added as a judge only on day 3 — after an unimplemented
+<code>Y</code> and a wrong wall rule had each cost us a submission. Same final
+architecture; theirs was doctrine from hour one, ours a repair.</p>
+<h2>Stage 1: Algorithm selection — humans, with a rewrite budget</h2>
+<p>No tool chooses algorithms; people do, and the operation <em>forces the
+question</em> twice: the scheduler&rsquo;s 50/50 improve/rewrite modes, and
+postmortem templates that open with &ldquo;computation graph / pseudocode&rdquo;
+before any layout detail. Algorithm changes are tracked as first-class
+events: pathfinder has three distinct generations in its artifact
+trail, matmul two, subset-sum two.</p>
+<h2>Stage 2: Composition — gadgets with contracts</h2>
+<p>Two implementations of the same discipline:</p>
+<ul>
+<li><strong><code>crates/hand</code></strong> (~9.9k lines): gadgets as Rust <strong>async actors</strong> —
+  typed ports over channels (<code>OutPort</code>/<code>InPort</code>), a room&rsquo;s behavior
+  unit-tested against its boundary trace via <code>assert_room</code> (with tick
+  limits), <code>auto_layout</code> for placement, a display model. Entire
+  solutions are emitted by binaries (<code>cargo run -p hand --bin
+  subsetsum2 -- --layout out.man</code>) and byte-compared against the
+  committed artifact. The regression tests encode their scars: false
+  pipe connections at wall-adjacent bends; collisions after the final
+  output.</li>
+<li><strong><code>chokudai/compiler</code> v0</strong>: a hardware-CAD flow. Input: a flat
+  physical netlist of gadget instances + port connections. Passes:
+  port/protocol validation → dependency-graph <strong>layer placement</strong> → A<em>
+  pipe routing with fixed terminal flow → </em><em>nearest-port contract
+  check</em>* (does every <code>s</code>/<code>r</code>/<code>q</code> still bind to the pipe the netlist
+  meant?) → emit <code>.man</code>. Implicit fanout is rejected. The gadget
+  catalog (<code>chokudai/gadgets/</code>) holds verified parts — crossovers,
+  persistent counted adders/mergers, phase gates, relays, a matmul PE —
+  each with port order, backpressure and tick behavior recorded.</li>
+</ul>
+<p><code>chokudai/README.md</code> states the doctrine that connects them: artisan
+small problems → harvest verified gadgets → compose large problems from
+gadgets via generators → fuse hot combinations back into larger artisan
+macros → reuse. Decide per problem: one dominant computation → artisan;
+several independently verifiable subsystems → compose.</p>
+<h2>Stage 3: Generation — the per-solution compilers</h2>
+<p>Every serious artifact ships its generator: <code>&lt;score&gt;.py</code> (or <code>.rs</code>)
+plus, on the biggest machines, <code>_router.py</code>, <code>_compact.py</code>,
+<code>_finalize.py</code>, a placement PNG, and a JSON routing report. Generators
+own the problems we fought by hand: literal packing (history-lesson&rsquo;s
+generator verifies every 64-bit literal and aligns widths so <strong>no
+accidental vertical backtick pair</strong> can form), nearest-pipe
+preservation (matmul&rsquo;s router validates <strong>40 nearest-pipe sites</strong>
+against the donor: &ldquo;the nearest-pipe identity as seen from each room is
+part of the ABI&rdquo;), routing search (snake&rsquo;s router records <code>seed 364</code> —
+routing is a searched, reproducible artifact).</p>
+<p>The postmortems repeatedly separate &ldquo;computation graph identical;
+layout only&rdquo; steps from algorithm steps — the two are different
+artifacts with different verification obligations.</p>
+<h2>Stage 4: Optimization — <code>unagi-optimizer</code> (+<code>optimizer_cli</code>, ~21.8k lines)</h2>
+<p><code>optimize &lt;slug&gt; &lt;valid.man&gt; --time-limit --seed [--submit]</code> — local
+search over an already-valid program:</p>
+<pre><code>Solution (.man) → Program → Layout (rooms/pipes, read-only view)
+      ↑                                      ↓
+ accept/reject ← EvaluationBackend ← Modifier::propose
+      ↖—————————— Search (annealing/greedy) ——————↙
+</code></pre>
+<ul>
+<li><strong>Modifiers</strong> (plugin trait, stable IDs): <code>trim-empty</code>, <code>room-shrink</code>,
+  <code>room-move</code>, <code>pipe-reroute</code>, <code>relocate</code>, <code>room-deadcell</code>,
+  <code>room-op-slide</code>, <code>room-commute-swap</code>, <code>room-route-nudge</code>,
+  <code>room-corridor-reroute</code>, <code>room-op-corridor-reroute</code> (carries pure
+  register ops along a rerouted corridor while preserving heading
+  sequence and visited-cell count; <code>s</code>/<code>r</code>/<code>q</code> deferred until
+  nearest-pipe-invariance checks land).</li>
+<li><strong>Safety model</strong>: every modifier is tagged <code>changes_timing()</code>; a
+  differential <strong>equivalence gate</strong> (<code>--equiv-gate</code>) is enforced for
+  timing-changing modifiers only — their systematization of the
+  &ldquo;pipe length is latency AND capacity; never shorten a storage pipe&rdquo;
+  trap that we learned by deadlock.</li>
+<li><strong>Evaluation</strong>: public cases in parallel (Rayon), result order
+  stable; the search core is pure (injected clock, event stream) so it
+  tests without files or wall time.</li>
+<li><strong>Runner</strong>: progress events, best-artifact saving, submission with
+  backoff — it can run unattended and submit its own improvements.</li>
+<li>The <strong>roadmap document</strong> ranks candidate modifiers by measured
+  criteria: leverage (footprint = max(w,h)² ⇒ only a fully cleared
+  perimeter band pays; neutral moves are still valuable as enablers),
+  valid-yield, firing frequency (measured per problem: one modifier
+  fired zero times on snake&rsquo;s best — deprioritized), timing class. An
+  interior survey quantifies the opportunity: best answers are
+  &ldquo;extremely roomy&rdquo; — snake ~11.4% dense, gradebook ~6.8%, with the
+  blank space <em>inside</em> one giant room.</li>
+</ul>
+<p>Measured contribution on visible artifacts: pathfinder 81.7B → 80.9B,
+matmul 500M → 495.8M (~1% each), with better-scored optimizer outputs
+kept as candidates for gradebook. The pattern: <strong>generators and
+algorithm changes earn the orders of magnitude; the optimizer converts
+idle CPU into steady percent-scale gains.</strong></p>
+<p><em>Ours, for contrast:</em> this tool is nearly clause-for-clause the
+&ldquo;manifest&rdquo; our team dictated mid-contest (a randomized,
+high-performance Rust room optimizer applying semantics-preserving
+transformations). They had it running by 07:43 UTC on day 3; we wrote
+the idea down at roughly that hour and built the analogous machinery
+(room contracts, then post-contest <code>room_ir</code>/<code>room_place</code>/
+<code>room_compile</code>) after the end.</p>
+<h2>Stage 5: Reading machines — <code>crates/mandis</code></h2>
+<p>A disassembler/decompiler: validated <code>.man</code> → Rust-like pseudocode with
+<code>goto</code> labels, room/pipe numbering, source coordinates, and <strong>static
+per-block tick counts</strong>. MVP by their own description, but it closes
+the loop: machines are readable, so foreign or old artifacts can be
+understood, priced, and re-entered into the generator flow. (Our
+<code>room_ir</code> is the same idea pointed at re-emission.)</p>
+<h2>Stage 6: Scoring, submission, records</h2>
+<ul>
+<li><code>crates/scorer</code> — the official formula over public tests
+  (<code>./bin/score --offline --compact</code>), used as the acceptance gate in
+  every postmortem.</li>
+<li>The submission relay (Part I §3): queue, versioned storage, event
+  history, single holder of the API key; plus <code>crates/submit</code>&rsquo;s
+  <code>scoreboard</code> binary re-scoring everything like-for-like.</li>
+<li>Every postmortem records: result, local + official submission IDs,
+  SHA-256 of the artifact, geometry, tick statistics, what changed
+  versus the donor, and a verification checklist.</li>
+</ul>
+<h2>Stage 7: Knowledge — catalog, textbook, editorial</h2>
+<ul>
+<li><strong><code>docs/techniques/README.md</code></strong> — a 56-entry reverse-lookup catalog
+  (&ldquo;what do I reach for?&rdquo;), each entry: one-line summary, mechanism,
+  cost/benefit, named example solutions. Its preamble is the scoring
+  physics (judge by footprint² × ticks product; footprint-only
+  problems excepted).</li>
+<li><strong><code>docs/textbook/</code></strong> — the same knowledge re-indexed by goal
+  (part 3 techniques, part 4 construction patterns), 1:1 links to the
+  catalog.</li>
+<li><strong><code>docs/official/</code></strong> — bilingual mirrors of every official document,
+  plus recorded editor-behavior probes.</li>
+<li><strong><code>iwiwi/editorial/</code></strong> — a post-contest interactive site (Next.js):
+  each explanation descends algorithm → computation graph → pseudocode
+  → <em>the real manifest</em>, with hover-highlighted regions and &ldquo;guided
+  gadget execution&rdquo; that steps a chosen gadget with live room state.
+  Explanation is treated as a first-class engineering artifact with its
+  own authoring guide.</li>
+</ul>
+<p>A selection of catalog entries that name things we met the hard way:
+<code>#17 Geometry Is the Operand</code> (nearest-pipe binding), <code>#30 Fixed-Width
+Aligned Literals</code> (vertical backtick control), <code>#34 Keep Scored
+Snapshots</code>, <code>#38 Phase Capacity of a Shared Loop</code>
+(<code>lap/gcd(lap,T) ≥ N</code>), <code>#42 Latency-Preserving Fold</code>, <code>#44
+Cursor-Relative Ring</code>, <code>#47 Epoch Tag Instead of Clearing</code>, <code>#56
+Differential Dynamic Profiling</code>. And entries we never had: <code>#36 Y
+Fan-Out</code>, <code>#37 Y Delay-Line Sort</code>, <code>#48 Temporal Register Aliasing</code>,
+<code>#52 Multiply-Then-Shift Classifier</code>.</p>
+<h1>Part III — Problem by Problem</h1>
+<p>Sixteen graded problems. For each: what the problem asks, Unagi&rsquo;s
+algorithm and machine, how the artifact was produced and verified, the
+score trail, and the comparison with our solution. Scores are official
+unless marked <em>public</em>. &ldquo;Snapshot&rdquo; = 2026-07-27 08:38 UTC standings.</p>
+<hr />
+<h2>pathfinder — 141× (their 114B vs our 16.1T at snapshot)</h2>
+<p><strong>Problem.</strong> A 16×16 maze arrives as 256 wall bits plus a robot start;
+flags appear one per round; guide the robot to each flag and draw its
+path on a 16×16 display.</p>
+<p><strong>Their trail — three architectures in 48 hours:</strong></p>
+<p><em>Generation 1 — &ldquo;four-lane bit-wave BFS&rdquo;</em> (80.9T, 18/18, 3783×3812,
+9.0 MB of text). Algorithmically already advanced — walls packed into
+sixteen 16-bit row masks, reverse BFS from each goal by bitwise wave
+propagation in four parallel row lanes, parent directions recorded, a
+streaming walker replays the path to the display. But the machine was
+enormous; at box 3812 the footprint term buried it.</p>
+<p><em>Generation 2 — &ldquo;16-row parallel BFS&rdquo;</em> (62.2T, 3456×1077), generated by
+a Rust program (<code>62166740306242.67.rs</code>) that emits basic blocks,
+branches, a local router — and a <strong>bus protocol</strong>: the CPU sends
+<code>target, action, payload</code> triples over shared pipes; every room
+self-selects by target ID (entry sequence <code>rM8W-</code> tests &ldquo;is this for
+target 8?&rdquo; in five cells); row actors answer a probe with the single
+value <code>2*(16*y+x) + is_open</code>, folding the branch result and coordinates
+into one integer so the CPU never re-reads metadata per direction.
+Board rows are 64-bit words at 4 bits/cell (wall, visited, 2-bit
+predecessor); probes go in fixed U→R→D→L priority.</p>
+<p><em>Generation 3 — &ldquo;packed row-bitset reverse BFS&rdquo;</em> (681B → 211B → 141.7B
+→ 133.7B → 132.7B → 121.7B; sides 238 → 231 → 222). The redesign that
+mattered. One 64-bit word per maze row:</p>
+<pre><code>state[row] = available | parent_low&lt;&lt;16 | parent_high&lt;&lt;32 | frontier&lt;&lt;48
+</code></pre>
+<p>A 16-word ring holds immutable free-cell masks and resets the dynamic
+words each round (epoch-style, no clearing pass). The BFS expands the
+frontier by whole-row bit operations and scans <strong>only the row span the
+frontier occupies, ±1</strong> — U/R/D/L candidate masks consume <code>available</code>
+in priority order so equal-distance ties resolve deterministically.
+During reconstruction, robot and flag positions are packed into one
+integer and arrival is tested modulo 65537. Machine ~222×222, official
+average ~1.78M ticks. Each step ships generator + finalizer + router
+scripts and a placement PNG; the final 5.65% came from a layout-only
+change (a 9-register bank moved 2 cells left, &ldquo;instruction streams
+byte-identical, all 38 pipe endpoints preserved&rdquo;). Their optimizer adds
+a final ~1% (81.7B → 80.9B artifacts).</p>
+<p><strong>Ours.</strong> A per-cell walking BFS in a 181×936 room (the machine&rsquo;s whole
+height); contest improvements were geometric (3.0× then 1.227× from
+snake line-merges) landing at 4.37T. Our post-contest measurement
+explains the residual: 90.8% of our room-0 walk was inter-operation
+transport under nearest-pipe lane structure — but even a perfect
+re-layout of our machine cannot reach their numbers, because their
+frontier step is O(rows), ours O(cells). The gap decomposes roughly as:
+algorithm ~40×, machine size ~4×.</p>
+<hr />
+<h2>matmul — 356× (16.7M vs 5.93B)</h2>
+<p><strong>Problem.</strong> Multiply an N×M by an M×K matrix (dimensions bounded by
+16), all values streamed.</p>
+<p><strong>Their trail.</strong> Early: a generated 16×16 processing-element grid
+(kept as <code>answer.man</code> + generator, marked legacy) — scores descending
+685M → 446M. Then the REDESIGN: a <strong>scalar ring-stream</strong> —</p>
+<pre><code>for i in 0..N:  sums[0..K] = 0
+  for t in 0..M: for j in 0..K: sums[j] += A[i,t] * B[t,j]
+  emit sums[0..K]
+</code></pre>
+<p>realized as: A expanded elementwise ×K in <code>(i,t,j)</code> order; B circulating
+row-major in a pipe ring; the K partial sums circulating in a FIFO whose
+storage is an <strong>exact 261-cell pipe</strong> — the pipe&rsquo;s length is
+simultaneously its capacity and the loop&rsquo;s phase; a row-marker stream
+(<code>M−1</code> zeros then 1) delimits rows. Ten rooms, fifteen pipes. This
+dropped them 446M → 96M → 76M → 36.8M (50×47).</p>
+<p>The final 15% (36.8M → <strong>31.1M</strong>, 46×46) is a pure placement compaction
+with the topology frozen: a Rust placement generator, four left-boundary
+crop passes, one local room move, and a router that re-verifies <strong>40
+nearest-pipe sites</strong> against the donor — their postmortem&rsquo;s phrase:
+&ldquo;the nearest-pipe identity as seen from each room is part of the ABI.&rdquo;
+The input pipe alone was shortened 10 → 2 cells (−8 ticks average);
+every other exact pipe length preserved.</p>
+<p><strong>Verification.</strong> Exhaustive: all 3,375 dimension triples, 20,250
+boundary-value cases, 4,096 random, 23 targeted; byte-reproduction of
+the artifact; the harness committed.</p>
+<p><strong>Ours.</strong> 5.93B from a hand-architecture with a 1.42× squeeze — we
+never revisited the algorithm. Both of their jumps were closed to us:
+the ring-stream (algorithm) and the frozen-topology compaction (we had
+no re-placer; our post-contest compiler is exactly that tool).</p>
+<hr />
+<h2>subset-sum — 37,601× (995M vs 37.4T)</h2>
+<p><strong>Problem.</strong> Choose a subset of ≤20 integers summing to a target;
+output the count and the chosen values in original order;
+lexicographically smallest index set among solutions.</p>
+<p><strong>Their algorithm — meet-in-the-middle, in pipes.</strong> Split indices into
+even/odd halves (≤10 each ⇒ ≤1024 subsets per half). Each subset is ONE
+64-bit record: subset sum in the high bits; the low 40 bits interleave a
+lexicographic priority (index <em>i</em> at bit <code>39−i</code>) and the selection mask
+(index <em>i</em> at bit <em>i</em>) — constructed so that among equal sums, the
+numerically largest record IS the lexicographically smallest index set.
+Ordering logic becomes plain integer comparison.</p>
+<p>The two halves&rsquo; subset lists are generated as <strong>descending sequences
+merged in pipe loops</strong>: <code>duplicate</code> and <code>merge</code> rooms merge &ldquo;current
+sequence&rdquo; with &ldquo;sequence + next contribution&rdquo; on the fly (left branch
+adds positive contributions; right branch subtracts from the target).
+<code>decode</code> unpacks; <code>match</code> two-pointer-walks the two descending streams;
+<code>max</code> keeps the best matched record; <code>select</code> replays the archived
+input values against the selection bits, emitting count + values in
+original order.</p>
+<p><strong>The machine.</strong> 106×106, 17 rooms, 25 pipes; the MITM lists live in
+<strong>snake pipes with exact capacities</strong> — left-a0 529 cells, left-a1 517,
+right-a1 540, right-a0 512, all ≥ the required 512 records, one snake
+detouring around a room &ldquo;to make up missing capacity&rdquo;. Central pipe
+bands are documented column by column. Generated by
+<code>crates/hand</code> (<code>--bin subsetsum2</code>), byte-compared; 13 unit tests + 25
+<code>hand</code> library tests; each public case run 118 ticks past the final
+output to prove no post-answer wall collision. They also submitted a
+trimmed and an untrimmed (blank-margined) version and observed the SAME
+official score — establishing that the scorer normalizes surrounding
+whitespace (an experiment, recorded).</p>
+<p><strong>Trail.</strong> 10.4B → 9.2B → 9.0B → 690M → 669M → 531M → <strong>443M</strong>
+(their repo best; snapshot 995M was mid-descent). 31 postmortems —
+their most-iterated problem.</p>
+<p><strong>Ours.</strong> Direct enumeration; 37.4T. No layout work recovers a
+complexity-class difference; this single problem is ~1 point of
+standing.</p>
+<hr />
+<h2>sudoku-validity — 3,709× (2.50M vs 9.29B)</h2>
+<p><strong>Problem.</strong> Validate 9×9 Sudoku boards streamed cell by cell; emit
+1/0 per board.</p>
+<p><strong>Their machine — 28×28, branchless.</strong> All 27 constraint groups (9
+rows, 9 cols, 9 boxes) are 9-bit used-masks packed into FOUR signed
+64-bit words, with each group&rsquo;s field placed so the word&rsquo;s <strong>sign bit
+stays free</strong> (word 0: rows 0–6; word 1: cols 0–4 + rows 7–8; word 2:
+cols 5–8 + top boxes; word 3: middle + bottom boxes). An input digit v
+becomes <code>1 &lt;&lt; (v−1)</code> shifted into its group&rsquo;s field.</p>
+<p>Four holder rooms sit in the corners, each looping <code>R ~ W - s</code>: receive
+candidate, <code>new = old XOR candidate</code>, store, reply <code>old − new</code> — which
+is <strong>negative iff the bit was previously unused</strong>. The central
+aggregator ANDs the row/col/box replies: all-negative ⇒ still valid.
+Aggregation gates the next candidate broadcast, so state updates can
+never be overtaken — lockstep by protocol, not by timing luck.</p>
+<p>Layout notes show nearest-pipe-aware micro-routing: a reply path was
+shortened 17 → 15 cells, and the postmortem explains why it could not
+be shortened further — the next bend would put a generator&rsquo;s <code>s</code> closer
+to the wrong pipe. Verified with 527 differential tests (27
+single-duplicate archetypes + 500 deterministic-random boards) against
+a reference implementation.</p>
+<p><strong>Trail.</strong> 2.88M → 2.86M → 2.73M → 2.63M → <strong>2.50M</strong>.</p>
+<p><strong>Ours.</strong> 9.29B (later 6.74B): a sequential checker walking per-cell
+logic. Their entire validation runs in ~3,153 average ticks on a 28×28
+footprint; ours is both larger and thousands of times slower — pure
+algorithm (bit-packing + sign-classification).</p>
+<hr />
+<h2>plotter — 271× (3.72M vs 1.01B)</h2>
+<p><strong>Problem.</strong> Execute drawing commands (pen moves/lines) on the LM-75
+display; scored per round on emitted frames.</p>
+<p><strong>Their machine — 50×50, 13 rooms.</strong> Architecture held fixed from the
+F=58 generation; two engineering moves did the rest:</p>
+<ol>
+<li><strong>Literal→arithmetic so code can bend.</strong> A backtick literal is
+   straight-line by definition — it cannot turn a corner. Replacing
+   <code>`32`</code> with <code>5M1{</code> (set 5, shift 1 by it) and <code>`4096`</code> with
+   <code>3M4*M</code> makes the instruction stream foldable, at which point every
+   room was <strong>comb-folded</strong> (&ldquo;fold4&rdquo;: a w×4 box yields <code>4w−8</code> op slots
+   vs a ring&rsquo;s <code>2W+2H−8</code>). Thirteen rooms re-folded with before/after
+   tables (Iterator 19×7→9×7 with the 8/10-cell hot loop untouched —
+   only cold init/teardown paths were folded; Writer 15×6→10×6; etc.).</li>
+<li><strong>&ldquo;Plan R&rdquo;: the floor as a planar graph.</strong> They stated the invariant
+   first — a horizontal pipe must cut vertical channels — then chose
+   the ROOM ORDER so that exactly one net (<code>pYM</code>) crosses the
+   north-south divide, and 19 pipes routed on the first attempt. The
+   previous generation&rsquo;s blocking crossing (D→Y over K→F) was removed
+   by reordering rooms, not by cleverer routing. All pipe lengths are
+   listed in the postmortem; six shrank dramatically (<code>pDV</code> 69→3).</li>
+</ol>
+<p>Underneath sits a measured cost model: <strong>round ticks = 142 + 8.4 ×
+pixels</strong> (previous generation: 156 + 8.5p), so footprint 58→50
+(58²/50² = 1.35×) was correctly identified as the dominant term. Then
+they measured <strong>per-pipe criticality empirically</strong> — lengthen each pipe
+by +8 cells, observe the public-average delta — producing a tick/cell
+price list (pDX 3.5/cell … pVF 0, non-critical), and noted the two
+initialization critical paths are balanced (X branch 40 vs Y branch 42):
+&ldquo;max applies — shortening only one is wasted.&rdquo; A <code>redesign/DESIGN.md</code>
+carries the timing constraints checked at generation time.</p>
+<p><strong>Trail.</strong> 23.96M → 23.92M → 5.46M (F=58) → 5.05M → <strong>3.87M</strong> (F=50);
+they logged the then-leader (3.627M) and their 6.8% gap.</p>
+<p><strong>Ours.</strong> 1.01B (958M final) from a hand machine + moves; our plotter
+notes measured the same phenomenon (1,642 blank runs; delay realized as
+distance) but the counted-loop fix stayed unbuilt.</p>
+<hr />
+<h2>gradebook — 116× at snapshot (405M vs 47.1B; both improved later)</h2>
+<p><strong>Problem.</strong> Maintain a roster of N students × K grades under batches
+of GET/SET/AVG/TOP operations.</p>
+<p><strong>Their machine — 83×89, a circulating roster.</strong> The roster is a
+fixed-width FIFO ring <code>[−N, id, g1..g4] × N</code> (grades zero-padded to
+width 4); the negative record <code>−N</code> is both the count and the rotation
+marker, and <strong>every operation rotates the ring back to the marker</strong>, so
+each op starts aligned at a record boundary. GET/SET rotate and
+read/replace; AVG streams the selected grade column into an
+accumulator and emits <code>floor(sum/N)</code>; TOP streams (grade, id) pairs
+through a GradeComparator → MinimumIdKeeper (a persistent
+compare-and-keep actor — catalog #26).</p>
+<p>The committed improvement is pure packaging: TOP/AVG support actors
+replaced by smaller tiles, then <strong>coordinate compression</strong> — empty
+columns inside the main room and empty rows/columns globally deleted
+one at a time, &ldquo;re-running the real simulator to 7/7 after every
+deletion&rdquo; — 92×94 → 83×89. The artifact ships a regeneration script
+plus donor manifest. Optimizer artifacts dated 07-26 07:43/07:55 UTC
+carry 167.9M — the unattended polisher finding further compression on
+the same architecture.</p>
+<p><strong>Ours.</strong> Our gradebook win was the same <em>family</em> of insight — a
+result-collector confirmation pipe cutting ticks 95,493 → 73,931
+(1.355×) — but executed on a 379-wide machine; theirs is ~4× smaller
+in footprint with ~5× fewer ticks. Catalog cross-links: #42
+latency-preserving fold, #43 semantic NOP blanking, #56 differential
+dynamic profiling (find hot instructions by diffing two runs with
+different op counts).</p>
+<h1>Part III (continued) — The Interpreter Family and Snake</h1>
+<p>The three &ldquo;little man&rdquo; self-hosting problems asked teams to build
+littleman machines that <em>execute littleman programs</em>. These reward
+interpreter architecture above all — dispatch cost, memory
+representation, display protocol — and they are where Unagi&rsquo;s
+human-pair (wata + iwiwi) worked deepest.</p>
+<hr />
+<h2>little-little-man (llm) — 545× (16.1T vs 8.78Q)</h2>
+<p><strong>Problem.</strong> Execute an arbitrary guest littleman program (16×16 room,
+up to 3 men, pipes, full instruction set) and render each tick to the
+LM-75 display. 28 cases: 14 public, 14 private.</p>
+<p><strong>Solution A — the strategic floor: a public-case memorizer.</strong> A Rust
+generator (<code>14-of-28.rs</code>) emits a 282×274 machine that <em>recognizes</em>
+which public case it is running (broadcaster → 14 case-source rooms
+matching W, H and one identifying cell) and replays embedded frame
+diffs through a rasterizer + display adapter. Result: public 14/14,
+private 0/14 → <strong>14/28 cases</strong>, score <code>null</code> (no footprint-tick score
+without a full pass), filed under the honest name <code>14-of-28</code>. Under
+points = cases-fraction + rank-fraction, half the cases is a real
+floor, shipped while the real interpreter was built. They verified all
+135 embedded frames against official data.</p>
+<p><strong>Solution B — the universal banked interpreter (958×713, 28/28,
+16.09T).</strong> A littleman machine emulating a littleman machine:</p>
+<ul>
+<li>the guest&rsquo;s 16×16 grid lives in a <strong>256-cell circulating memory</strong>;</li>
+<li>guest room/man/pipe metadata occupy three 64-cell circulating
+  memories plus <strong>39 small scalar holder rooms</strong>;</li>
+<li>a central controller executes up to 3 guest men in <strong>lockstep</strong>,
+  implementing <code>^ &gt; v &lt;</code>, digits, <code>M + - X s r H</code> with signed-64
+  semantics;</li>
+<li>guest pipes update tail-first, reproducing the official same-tick
+  cascade; send/receive blocking, nearest-endpoint selection and
+  reading-order tie-breaks are <strong>computed at runtime from
+  coordinates</strong> — the interpreter re-derives the binding rules we all
+  fought, per guest step;</li>
+<li>initialization paints the full frame; each round commits exactly one
+  frame of diffs.</li>
+</ul>
+<p>The geometry work is its own story: the controller&rsquo;s command fan to ~50
+service rooms was compressed from 180 columns to 152 by shifting the
+service column 15 rows and re-grading every command pipe&rsquo;s slope so
+none cross; reply pipes drop into 2-row gaps under each service and
+merge into a 7-column vertical collector (replacing 50 independent
+return tracks); the 256-cell ring folds to 29×16. Verified by unit
+gadget tests plus <strong>pipe-shifter and guest-ALU cross-checks against
+the official WASM</strong>; official average ~15.9M ticks.</p>
+<p><strong>Ours.</strong> Also an interpreter (28/28) — at 8.78 QUADRILLION. The 545×
+is pure constant factor: our guest-step dispatch and memory walks cost
+orders of magnitude more ticks, and our machine was larger. Their 39
+scalar holders + banked rings + lockstep controller is a articulated
+answer to exactly the constant-factor question.</p>
+<hr />
+<h2>little-little-little-man (lllm) — 4.4× (4.81B vs 21.2B)</h2>
+<p><strong>Problem.</strong> A reduced interpreter-of-interpreter task (guest programs
+from a constrained subset; 21 cases).</p>
+<p><strong>Their trail.</strong> The <code>LLLM/</code> directory preserves a hill-climb as
+<code>&lt;uuid&gt;_&lt;score&gt;_&lt;author&gt;.man</code> artifacts alternating between iwiwi and
+wata: 3.822T → 423B → 187B → 103.7B → 75.98B → 69.1B → 68.97B; the
+final redesign lands in <code>little-little-little-man/</code> at <strong>11.35B
+(21/21, 130×172, official avg 383,637 ticks)</strong> — and the snapshot
+shows 4.81B, i.e. they kept descending after the last committed
+postmortem.</p>
+<p><strong>Final architecture — &ldquo;direct scalar service + pipelined
+controller&rdquo;.</strong> The guest program is stored as <strong>5-bit opcodes in a
+260-element cursor-relative FIFO</strong> (catalog #44: rotate a logical head
+pointer, never move the data); execution state sits in an 8-element
+direct scalar service; the controller talks to exactly four
+subsystems: program memory, scalars, input, display writer. The final
+committed 8.77% came from packaging: the init loop&rsquo;s 15 recurring
+&ldquo;program request → display DATA&rdquo; pairs laid out on ONE row, the
+remaining control flow shelf-packed beneath, then <strong>49 empty controller
+rows deleted</strong>.</p>
+<p><strong>Ours.</strong> 21.2B at snapshot, 17.6B final — our strongest showing among
+the interpreter problems (a subagent&rsquo;s eight-row shrink 303×311 →
+303×303 with the merge+rail technique). Their advantage here was
+sustained human-pair iteration; the architectures rhyme (both ring
+memories with cursor state), and this is the problem family where our
+approach came closest on merit.</p>
+<hr />
+<h2>snake — 7.6× (107M vs 809M)</h2>
+<p><strong>Problem.</strong> Play snake on a 16×16 board: fruit spawns, direction
+changes arrive, body grows; draw every state; detect self-collision
+and wall exit.</p>
+<p><strong>Their machine — 85×85.</strong> The snake body IS a <strong>physical FIFO of cell
+addresses</strong>, tail→head. Five scalar &ldquo;echo holder&rdquo; rooms keep dir /
+fruit / head / len / c16; the controller keeps the candidate head in
+register B and the remaining scan count in the <strong>backpack</strong>;
+self-collision = one full lap of the body FIFO comparing addresses.
+Drawing is incremental (catalog #54): head pixel + tail pixel per move
+with <code>SWAP 1</code> preserve, plus fruit on spawn; round init draws once.</p>
+<p><strong>Toolchain per artifact</strong> (the fullest example in the repo):
+<code>generate-up.py</code> (generator) + <code>router_hotloop.py</code> with recorded
+<strong>seed 364</strong> (routing is a searched, reproducible artifact) +
+<code>verify.rs</code> AND <code>verify-official.mjs</code> (both engines) +
+<code>generate-random.py</code> / <code>generate-stress.py</code> (fuzzers) + <code>final.png</code>
+(placement render). The committed best (234M) documents shrinking the
+Incremental Writer 13 → 10 columns and the controller&rsquo;s bottom margin
+6 → 2 rows, re-routing in the narrower room with two manual
+control-edge reroutes; optimizer artifacts carry 157M; snapshot 107M.</p>
+<p><strong>Ours.</strong> 809M — a 1.05× line-merge on an inherited machine. Theirs is
+what the same problem looks like when the machine is generated: every
+shrink is a re-run, not a surgery.</p>
+<h1>Part III (continued) — The Small-Machine Problems</h1>
+<p>Where machines fit in tens of cells per side, the competition is
+protocol design and single-cell placement. These are the problems where
+our numbers were closest to theirs — and once, better.</p>
+<hr />
+<h2>brackets — 4.5× (83.8K vs 377K)</h2>
+<p><strong>Problem.</strong> Stream a bracket string; output 0 if balanced, else the
+1-based position of the first error.</p>
+<p><strong>Their machine — 16×16, four stages.</strong></p>
+<ol>
+<li><em>Feeder</em> (lower-left): drops the length header, forwards each byte,
+   appends a 0 end-marker.</li>
+<li><em>Classifier</em> (upper-left): computes <code>(5 × ASCII) &gt;&gt; 5</code> — one
+   multiply and one out-of-range-safe shift map all six bracket
+   characters onto three type codes {6, 14, 19} (catalog #52), with
+   closers negated.</li>
+<li><em>Worker</em> (lower-right): the WHOLE stack is one base-3 number in the
+   off hand (catalog #7): push = <code>stack*3 + type</code>; pop = subtract the
+   type and divide by 3 — a nonzero remainder is a type mismatch, a
+   negative quotient is a pop-on-empty (catalog #8: divide is divmod).</li>
+<li><em>Counter</em> (upper-right): counts accepted characters; converts the
+   first negative status into the answer position; end-of-stream with
+   zero status emits 0.</li>
+</ol>
+<p>Micro-placement: the stack room was widened by one cell to shorten the
+pop loop from 18 to 16 ticks; to keep the 16×16 footprint the input
+room moved to the corner behind a 3-cell bent pipe. Official 26/26,
+average 184.1 public ticks.</p>
+<p><strong>Ours.</strong> The 22×22 line (377K, landed 1.286×) — we fought at
+footprint 22 vs 23 while they sat at 16 with a register-packed stack.
+The base-3-stack-in-a-register idea removes the storage pipes that
+forced our size.</p>
+<hr />
+<h2>reverse-a-list — 4.2× (20.0K vs 84.4K)</h2>
+<p><strong>Problem.</strong> Read N values per round; emit them reversed.</p>
+<p><strong>Their committed prototype of note — the Y delay-line</strong> (catalog #37):
+one dispatcher man per round <code>Y</code>-splits per value; the east-born child
+parks the value in a <strong>private counted loop</strong> (8 ticks per remaining
+item, counted in BP), the west-born child returns in 6 ticks to split
+again; later values therefore finish waiting <em>first</em>, and the single
+output pipe receives the list already reversed — no per-value rooms, no
+collector network. Their prototype measured 130.0 public ticks against
+their then-best 171.6 but stood 22×69 (&ldquo;too tall, needs folding&rdquo;) —
+committed as a design with a note, alongside U-demux/token-handshake
+solutions in the trail (110K → 100K committed; a mid-trail note records
+official 47,059 and the policy &ldquo;push only after reaching rank 1&rdquo;;
+snapshot 20,026).</p>
+<p><strong>The convergence worth recording:</strong> our teammate gpt built the same
+Y-farm architecture during the contest and proved it correct, but its
+delays were SPATIAL (worker <em>i</em> waits by walking, Σ(D−2i) = W² cells)
+and it could not fit the winning box. Our own <code>claude_42</code> note
+identified the repair — &ldquo;counted loops instead of distance&rdquo; — hours
+before the end. Unagi&rsquo;s prototype is that exact repair, implemented:
+delay in TIME (backpack counter), not space.</p>
+<p><strong>Ours.</strong> 84.4K at snapshot via chatgpt_1&rsquo;s landed 1.349×.</p>
+<hr />
+<h2>tcp — 1.7× (821K vs 1.36M) — our closest engineered gap</h2>
+<p><strong>Problem.</strong> Reassemble a packet stream: emit values in sequence
+order, −1 for each packet outside the 16-wide window.</p>
+<p><strong>Their machine — 16×17.</strong> Future packets as (seq, val) pairs in a
+circulating FIFO; next-needed sequence in register B. The out-of-window
+test is branch-free: copy <code>seq − next</code> to the backpack and right-shift
+by 4 — any nonzero result means ≥16, emit −1 (catalog #28 + #9). Scan
+sentinel is 0 (never a valid sequence number). The capacity ledger is
+explicit and exact: 2 cells outbound + a 28-cell folded return + <strong>1
+integer held in the forwarder&rsquo;s hand</strong> = 31 integers = 15 packets × 2 +
+sentinel — registers and pipe cells budgeted as one storage pool. The
+main room&rsquo;s comparison/reinsertion column was moved left (11 → 10
+columns) by resetting the backpack via the comparison&rsquo;s own 0 result
+and re-saving through an edge <code>b</code> — same state machine, one column
+thinner. Verified with 128 random valid + 64 loss cases.</p>
+<p><strong>Ours.</strong> 1.36M — codex&rsquo;s tcp line with the router optimization; our
+closest gap among seriously-engineered problems, and the clearest case
+of &ldquo;same idea family, one protocol trick apart.&rdquo;</p>
+<hr />
+<h2>memory — 1.6× (8.85M vs 14.0M)</h2>
+<p><strong>Problem.</strong> A random-access memory service over pipe storage.</p>
+<p><strong>Their trail.</strong> Iterative packing with recorded numbers: wip 11.43M →
+9.49M &ldquo;packed to 22×22&rdquo; → a 21×21 note; and a REJECTED experiment
+documented with its measurement — parallelizing the FIFO rotation with
+2 workers (split n/2, (n−1)/2 so the second skips the loop when
+negative) targeting 4 ticks/item: no average gain, because
+consecutive-access-heavy cases regress. Recorded, then abandoned.</p>
+<p><strong>Ours.</strong> 14.0M, including the user&rsquo;s own hand-edit (12 cells moved in
+the visual editor, −2.71% ticks) — the single event that seeded our
+whole &ldquo;optimize rooms preserving function&rdquo; manifest. This is the
+problem where our <em>method</em> (careful local moves under contracts) most
+resembled theirs; they simply ran more iterations of it.</p>
+<hr />
+<h2>sort-numbers — 2.5× (320K vs 802K)</h2>
+<p><strong>Problem.</strong> Sort each round&rsquo;s values ascending.</p>
+<p><strong>Their machine — 13×13 selection-sort ring.</strong> Each pass carries the
+remaining count as a header (catalog #10 — no sentinel value stolen
+from the domain); the candidate minimum rides in B; <code>X</code> sign-branches
+on the difference; non-candidates recirculate. Duplicates and the
+domain edges ±10000 need no special cases. The committed micro-step:
+bend the zero (equal) branch WEST into the same <code>+</code> that the positive
+path uses to restore x, then a dedicated adjacent <code>s</code>, rejoining the
+shared scan-count decrement — 4 ticks saved per equal comparison,
+footprint unchanged. Verified with a 200-round, 1,716-element
+multi-round session on both engines. Committed 377K; snapshot 320K.</p>
+<p><strong>Ours.</strong> 802K (1.012× late gain). Same algorithm family; theirs is
+one protocol generation tighter.</p>
+<hr />
+<h2>history-lesson — the problem we won (their 6,889 vs our 6,561)</h2>
+<p><strong>Problem.</strong> Output a fixed 2,810-byte ASCII text (footprint-only
+scoring — ticks don&rsquo;t matter).</p>
+<p><strong>Their machine — 83×82.</strong> The text compiled to 3,020 base-34 tokens
+(lowercase alphabet + 2 escapes + 5 frequent phrases); tokens packed
+10–12 per signed 64-bit backtick literal; the GENERATOR validates every
+packed integer fits 64 bits read from either direction and lays 4
+integers per two-row group with <strong>literal widths matched so no
+accidental vertical backtick pair can form</strong> — generation-time control
+of the column-pairing rule. A three-stage decoder (base-34 remainders →
+escape/phrase expansion → ASCII) sits beneath the data block; two
+decoder rooms were tucked beside an existing 2-cell pipe to shave the
+height 84 → 82.</p>
+<p><strong>Ours — 6,561, rank 21 vs their 28.</strong> Our history tokenizer line
+(phrase dictionary + packed literals, <code>claude_35</code>) found a slightly
+better encoding/geometry product. On the one problem scored purely on
+the axis our tooling was strongest at — literal packing under the
+backtick rules — we beat them.</p>
+<hr />
+<h2>triangle — parity (832 = 832)</h2>
+<p>The warm-up (triangular numbers). Both teams at the shared optimum 832;
+rank 59 vs 118 is submission-time tie-breaking. Unagi kept no solutions
+directory for it.</p>
+<h1>Part IV — The Two Teams, Side by Side</h1>
+<h2>1. Structural comparison</h2>
+<table>
+<thead>
+<tr>
+<th>dimension</th>
+<th>Unagi</th>
+<th>wheezards</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>people</td>
+<td>6 veteran humans + LLM agents as workers</td>
+<td>1 human + 5–8 LLM agents; one agent as coordinator</td>
+</tr>
+<tr>
+<td>infrastructure</td>
+<td>ported from 3 prior years, live before start (fleet executor, Cloud SQL, dashboard, submission relay)</td>
+<td>built during the contest (judge scripts, submissions DB, board reader)</td>
+</tr>
+<tr>
+<td>simulator</td>
+<td>Rust, <code>Y</code> included, conformance suite vs official WASM from the start</td>
+<td>Python + C ext + Rust, WASM gate added day 3 after two paid divergences</td>
+</tr>
+<tr>
+<td>how machines are made</td>
+<td>per-problem generators (Python/Rust) over gadget libraries; hand only at the frontier</td>
+<td>hand/agent-written grids, then surgical edits</td>
+</tr>
+<tr>
+<td>optimization</td>
+<td>generic annealer over 11 semantics-preserving modifiers, equivalence-gated, auto-submitting</td>
+<td>problem-specific squeezers + hand edits; the generic optimizer existed as a manifest, built post-contest</td>
+</tr>
+<tr>
+<td>algorithm changes</td>
+<td>forced by process (rewrite mode 50/50; postmortems open with the computation graph)</td>
+<td>rare; mostly inherited first working algorithm</td>
+</tr>
+<tr>
+<td>verification</td>
+<td>per-solution checklists, exhaustive/fuzz harnesses, both engines, byte-reproducible generators, SHA-256 in postmortems</td>
+<td>preflight + subdb like-for-like judge; strong late, absent early</td>
+</tr>
+<tr>
+<td>knowledge</td>
+<td>56-technique catalog + textbook + ~230 postmortems + bilingual official docs</td>
+<td>45 claude_NN analysis docs + handoff messages; analysis-shaped, not retrieval-shaped</td>
+</tr>
+<tr>
+<td>submission</td>
+<td>Cloud Run relay, queue, versioning, key isolation</td>
+<td>single gatekeeper agent with local key</td>
+</tr>
+<tr>
+<td>agent topology</td>
+<td>scheduled fresh-context loops vs the leaderboard; curator as single knowledge writer</td>
+<td>persistent heterogeneous agents with human-mediated handoffs</td>
+</tr>
+<tr>
+<td>final standing (08:38 snapshot)</td>
+<td>11th, 29.31</td>
+<td>39th, 24.68</td>
+</tr>
+</tbody>
+</table>
+<h2>2. The convergences — same physics, different clocks</h2>
+<p>Reading their repo after building ours is an exercise in recognition.
+Independently, both teams derived:</p>
+<ul>
+<li><strong>The scoring calculus</strong>: judge by footprint² × ticks product; only a
+  fully cleared perimeter band changes the footprint term (their
+  optimizer roadmap; our claude_44).</li>
+<li><strong>The four ways a moved cell breaks</strong>: heading, nearest-pipe binding,
+  timing/phase, literal pairing (their in-room rewrite semantics
+  reference; our room_reflow/room_shrink checks).</li>
+<li><strong>Geometry as ABI</strong>: their matmul router verifies 40 nearest-pipe
+  sites; our room_ports/binding_map machinery does the same check.</li>
+<li><strong>Roominess</strong>: their survey (snake 11.4% dense, gradebook 6.8%); our
+  pathfinder room-0 measurement (2.26%).</li>
+<li><strong>Scored snapshots</strong>: their <code>&lt;score&gt;.man</code> convention and catalog #34;
+  our subdb.</li>
+<li><strong>Best-only economics</strong>: their memorizer floor and free-submission
+  play; our &ldquo;submitting is free&rdquo; doctrine.</li>
+<li><strong>The optimizer manifest</strong>: their <code>optimize</code> tool is nearly clause
+  for clause the &ldquo;randomized highly performing Rust room optimizer with
+  path-aware transformations&rdquo; our team dictated mid-contest — theirs
+  was running by 07:43 UTC day 3; ours became room_ir/room_place/
+  room_compile after the end.</li>
+<li><strong>The Y delay-line</strong>: our gpt built the architecture, our claude_42
+  named the missing repair (counted delay, not spatial), their
+  prototype implements exactly that repair.</li>
+</ul>
+<p>The difference is never <em>what was understood</em>; it is <em>when the
+machinery existed</em>. They carried tools in; we derived tools live.</p>
+<h2>3. What they did that we genuinely did not</h2>
+<ol>
+<li><strong>Re-chose algorithms under process pressure.</strong> Six problems, ≥100×
+   each — pathfinder (3 generations), matmul (2), subset-sum
+   (enumeration → MITM), sudoku (bit-packing), plotter (measured cost
+   model + planar re-plan), gradebook (roster ring). The scheduler&rsquo;s
+   rewrite mode institutionalizes this.</li>
+<li><strong>Owned a compiler at contest time.</strong> Generators + routers +
+   finalizers per problem; <code>hand</code> actors with room unit tests;
+   chokudai&rsquo;s netlist CAD flow with nearest-port contract checking.</li>
+<li><strong>Bought percent-scale gains with idle CPU.</strong> The equivalence-gated
+   annealer, auto-submitting, running unattended.</li>
+<li><strong>Built knowledge for retrieval, not narrative.</strong> Catalog + textbook
+   + postmortem template; an agent (or human) mid-problem can <em>look
+   up</em> &ldquo;how do I demux without tags&rdquo; (#19) or &ldquo;how do I control
+   vertical literals&rdquo; (#30).</li>
+<li><strong>Isolated the API key in a service</strong> and versioned every submission
+   with its event history.</li>
+</ol>
+<h2>4. What we did that held up</h2>
+<ul>
+<li><strong>history-lesson: won outright</strong> (6,561 vs 6,889) — our tokenizer +
+  literal-packing line was world-class on the footprint-only problem.</li>
+<li><strong>tcp, memory, sort within 1.6–2.5×</strong> — protocol-level engineering
+  competitive with theirs.</li>
+<li><strong>Operational throughput at the end</strong>: 14 live improvements in the
+  final hours through one judged submission relay, with ten of them
+  being other agents&rsquo; finished work — the handoff topology worked.</li>
+<li><strong>Honest negative results discipline</strong> mirrored theirs: our verified
+  no-gos (llm line-merge deadlock, gradebook shape search) parallel
+  their recorded rejections (memory 2-worker rotation).</li>
+<li><strong>Post-contest convergence</strong>: our room compiler reached working
+  form — rooms 4/5/3/1 of pathfinder compiled and verified in-machine —
+  demonstrating the same architecture their tooling embodies.</li>
+</ul>
+<h2>5. Lessons folded forward (for 2027)</h2>
+<ol>
+<li><strong>Algorithm first, grid second — with a forcing function.</strong> Adopt
+   the 50/50 improve/rewrite split and open every solution document
+   with the computation graph and its paper tick count.</li>
+<li><strong>Arrive with the factory.</strong> Extract this year&rsquo;s judge/subdb/board
+   scripts + the room compiler into a task-independent skeleton;
+   rehearse once on a 2026 problem before the 2027 start.</li>
+<li><strong>Conformance from hour one.</strong> Local engine + official engine behind
+   one CLI over one shared case file; divergence catalog as a living
+   document.</li>
+<li><strong>Generators as the deliverable.</strong> Commit <code>&lt;score&gt;.py</code> next to every
+   artifact; hand edits are for the frontier only, and get folded back
+   into the generator the same day.</li>
+<li><strong>Run the annealer as background income.</strong> Equivalence-gated
+   modifiers over valid artifacts, auto-submitting; ~1–6% per problem
+   is a rank fraction at the margin.</li>
+<li><strong>Leaderboard-driven scheduling</strong> with expected-gain sampling
+   (<code>2 − points</code> weighting) for grind-shaped work; keep our
+   human-relay handoffs for design-shaped work.</li>
+<li><strong>Knowledge as a catalog</strong>, one technique per entry with named
+   examples — grow it during the contest, not after.</li>
+<li><strong>Floors are free points</strong>: when a problem splits public/private
+   cases, ship the honest memorizer while the real solution builds.</li>
+</ol>
+<h2>6. Verdict</h2>
+<p>Unagi&rsquo;s edge decomposes cleanly: <strong>(a)</strong> six algorithm rewrites worth
+100×–37,600× each — human insight, scheduled and forced by process;
+<strong>(b)</strong> a compiler stack that made every machine regenerable, every
+constraint (nearest-pipe, literal pairing, capacity) checked at
+generation time; <strong>(c)</strong> infrastructure and knowledge systems amortized
+across years. Our team matched them on physics understanding, on
+operational tempo, and on one problem outright; we lost where we let
+the first working algorithm stand. The room compiler we built after the
+contest — and their entire repository, which reads as its
+independently-evolved twin — both point at the same 2027 doctrine:
+<em>generate, verify, anneal; and never stop asking whether the
+computation itself should change.</em></p>
+<hr />
+<h2>Appendix A — primary sources consulted</h2>
+<ul>
+<li><code>README.md</code>, <code>AGENTS.md</code>, <code>docs/preparation.md</code>, <code>docs/services.md</code>,
+  <code>docs/architecture.md</code>, <code>docs/api/submissions.md</code>,
+  <code>docs/optimizer.md</code>, <code>docs/optimizer-modifier-roadmap.md</code>,
+  <code>docs/optimizer-inroom-plan.md</code>, <code>docs/simulator/README.md</code>,
+  <code>docs/techniques/README.md</code> (56-entry catalog), <code>docs/textbook/</code>,
+  <code>docs/glossary.md</code>, <code>docs/system-resource-guard.md</code></li>
+<li><code>solutions/&lt;slug&gt;/</code> postmortems and artifact trails for all 15
+  problem directories (~230 documents; ~40 read in full)</li>
+<li><code>crates/</code>: simulator, optimizer, optimizer_cli, hand, mandis, scorer,
+  submit, best-answer, executor, www, editor-wasm</li>
+<li><code>iwiwi/</code>: v1 work dirs, v2 curator/scheduler/solver, v3 loop +
+  knowledge + prompts, v4-hand notes, editorial site, analysis</li>
+<li><code>chokudai/</code>: README, compiler, dsl, gadgets; <code>wata/prompt.md</code>;
+  <code>tos/</code> diaries</li>
+<li>Our archive: <code>archive/site-snapshot/standings/*.json</code>,
+  <code>api/standings-overall.json</code> (2026-07-27 08:38 UTC)</li>
+<li>Working notes: <code>reports/unagi-analysis/notes/</code> in
+  <code>tarstars/icfpc2026-claude</code></li>
+</ul>
+<p><em>Report generated 2026-08-05 by the wheezards tooling agent (Claude).
+All quoted figures are from the cited files; translations from
+Japanese are ours.</em></p></div></body></html>

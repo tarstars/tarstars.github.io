@@ -23,6 +23,16 @@ clearly labelled as unofficial:
 - [Array Sum](/problems/array-sum/) — consume a length-prefixed list as a
   stream and compute its sum without storing the array.
 
+## Analysis: Team Unagi's approach
+
+A detailed engineering study of team Unagi's published repository —
+their per-problem approaches, contest operation and machinery, compared
+with ours — is at [`/unagi-analysis/`](/unagi-analysis/)
+([PDF](/unagi-analysis/unagi-icfpc2026-analysis.pdf)). Sources and
+research notes live in
+[tarstars/icfpc2026-claude](https://github.com/tarstars/icfpc2026-claude)
+under `reports/unagi-analysis/`.
+
 The raw captured JSON (API responses, per-problem standings, our team
 wheezards' submission records) is browsable under [`/archive/`](/archive/).
 
